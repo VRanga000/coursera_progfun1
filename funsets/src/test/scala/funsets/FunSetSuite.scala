@@ -1,7 +1,6 @@
 package funsets
 
-import org.scalatest.FunSuite
-
+import org.scalatest.{FunSuite,Matchers}
 
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -13,7 +12,7 @@ import org.scalatest.junit.JUnitRunner
  *  - right-click the file in eclipse and chose "Run As" - "JUnit Test"
  */
 @RunWith(classOf[JUnitRunner])
-class FunSetSuite extends FunSuite {
+class FunSetSuite extends FunSuite with Matchers {
 
   /**
    * Link to the scaladoc - very clear and detailed tutorial of FunSuite
@@ -110,5 +109,40 @@ class FunSetSuite extends FunSuite {
     }
   }
 
+  val numbersLessThan10:Set = i => i < 10
+  val numbersGreaterThanMinus50:Set = i => i > -50
 
+  test("forall the set of numbers less than 10, each should be less than 20") {
+    forall(numbersLessThan10, i => i < 20) should be (true)
+  }
+
+  test("forall the set of numbers larger than -50, each should be greater than -60") {
+    forall(numbersGreaterThanMinus50, i => i > -60) should be (true)
+  }
+
+  //negative test
+  test("forall the set of numbers larger than -50, NOT all should be larger than -40") {
+    forall(numbersGreaterThanMinus50, i => i > -40) should be (false)
+  }
+
+  test("forall the set of numbers less than 10, NOT all should be less than 5") {
+    forall(numbersLessThan10, i => i < 5) should be (false)
+  }
+
+  test("in the set of numbers less than 10, there exist members less than 5") {
+    exists(numbersLessThan10, i => i < 5) should be (true)
+  }
+
+  test("in the set of numbers larger than -50, there exist members larger than -40") {
+    exists(numbersGreaterThanMinus50, i => i > -40) should be (true)
+  }
+
+  test("mapping the set of numbers less than 10 to the square function") {
+    val squaresOfNumbersLessThan10 = map(numbersLessThan10, i => i*i)
+    withClue("should contain 16") { contains(squaresOfNumbersLessThan10, 16) should be (true)}
+    withClue("should contain 81") { contains(squaresOfNumbersLessThan10, 81) should be (true)}
+    withClue("should contain 121") { contains(squaresOfNumbersLessThan10, 121) should be (true)}
+    withClue("should NOT contain -9") { contains(squaresOfNumbersLessThan10, -9) should be (false)}
+    withClue("should NOT contain -100") { contains(squaresOfNumbersLessThan10, -100) should be (false)}
+  }
 }
