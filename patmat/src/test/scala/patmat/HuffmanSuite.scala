@@ -14,6 +14,17 @@ class HuffmanSuite extends FunSuite {
 		val t2 = Fork(Fork(Leaf('a',2), Leaf('b',3), List('a','b'), 5), Leaf('d',4), List('a','b','d'), 9)
 	}
 
+  test("count frequency of chars example 1") {
+    assert(times(List('a','b','a')) === List(('a',2), ('b',1)))
+  }
+
+  test("count frequency of chars example 2") {
+    assert(times(List('a','b','c')) === List(('a',1), ('b',1),('c',1)))
+  }
+
+  test("count frequency of chars example 3") {
+    assert(times(List('a','a','a')) === List(('a',3)))
+  }
 
   test("weight of a larger tree") {
     new TestTrees {
