@@ -28,14 +28,14 @@ class HuffmanSuite extends FunSuite {
 
   test("weight of a larger tree") {
     new TestTrees {
-      assert(weight(t1) === 5)
+      assert(t1.weight === 5)
     }
   }
 
 
   test("chars of a larger tree") {
     new TestTrees {
-      assert(chars(t2) === List('a','b','d'))
+      assert(t2.getChars === List('a','b','d'))
     }
   }
 

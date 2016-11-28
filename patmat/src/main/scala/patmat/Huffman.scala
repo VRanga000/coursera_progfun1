@@ -18,26 +18,24 @@ object Huffman {
    * present in the leaves below it. The weight of a `Fork` node is the sum of the weights of these
    * leaves.
    */
-    abstract class CodeTree
-  case class Fork(left: CodeTree, right: CodeTree, chars: List[Char], weight: Int) extends CodeTree
-  case class Leaf(char: Char, weight: Int) extends CodeTree
+    abstract class CodeTree {
+      def getChars(): List[Char]
+      def weight: Int
+    }
+    case class Fork(left: CodeTree, right: CodeTree, chars: List[Char], weight: Int) extends CodeTree {
+      def getChars(): List[Char] = chars
+   }
+    case class Leaf(char: Char, weight: Int) extends CodeTree {
+      def getChars(): List[Char] = List(char)
+    }
+
+    def weight(codeTree: CodeTree) = codeTree.weight
+    def chars(codeTree: CodeTree) = codeTree.getChars()
   
 
   // Part 1: Basics
-    def weight(tree: CodeTree): Int = {
-      tree match {
-        case Fork(left, right, chars, weight) => weight
-        case Leaf(char, weight) => weight
-      }
-    }
-  
-    def chars(tree: CodeTree): List[Char] = tree match {
-      case Fork(left, right, chars, weight) => chars
-      case Leaf(char, weight) => List(char)
-    }
-  
   def makeCodeTree(left: CodeTree, right: CodeTree) =
-    Fork(left, right, chars(left) ::: chars(right), weight(left) + weight(right))
+    Fork(left, right, left.getChars() ::: right.getChars(), left.weight + right.weight)
 
 
 
@@ -113,7 +111,7 @@ object Huffman {
       if(trees.length < 2) trees
       else {
         makeCodeTree(trees(0), trees(1)) :: trees.slice(2,trees.length) sortWith {
-          (t1, t2) => weight(t1) < weight(t2)
+          (t1, t2) => t1.weight < t2.weight
         }
       }
     }
@@ -161,11 +159,27 @@ object Huffman {
    */
     def decode(tree: CodeTree, bits: List[Bit]): List[Char] = {
       bits.foldLeft((tree,List[Char]())) { case ((treeSoFar, charList), bit) =>
+        println(s"Processing bit $bit")
         treeSoFar match {
-          case Leaf(char, weight) => (tree, charList ++ List(char))
+          case Leaf(char, weight) => 
+            (treeSoFar, charList)
           case Fork(left, right, chars, weight) => bit match {
-            case 0 => (left, charList)
-            case 1 => (right, charList)
+            case 0 => 
+              println(s"Found fork($chars,$weight), returning $left"); 
+              left match {
+                case Leaf(char, weight) => 
+                  println(s"Found leaf($char,$weight), adding char $char"); 
+                  (tree, charList ++ List(char))
+                case f:Fork => (left, charList)
+              }
+            case 1 => 
+              println(s"Found fork($chars,$weight), returning $right"); 
+              right match {
+                case Leaf(char, weight) => 
+                  println(s"Found leaf($char,$weight), adding char $char"); 
+                  (tree, charList ++ List(char))
+                case f:Fork => (right, charList)
+              }
           }
         }
       }._2
@@ -193,12 +207,21 @@ object Huffman {
   
 
   // Part 4a: Encoding using Huffman tree
+  def encodeChar(tree: CodeTree)(char: Char) : List[Bit] = {
+    tree match {
+      case f:Fork if f.left.getChars.contains(char) => List(0) ++ encodeChar(f.left)(char) 
+      case f:Fork if f.right.getChars.contains(char) => List(1) ++ encodeChar(f.right)(char) 
+      case l:Leaf => List()
+    }
+  }
 
   /**
    * This function encodes `text` using the code tree `tree`
    * into a sequence of bits.
    */
-    def encode(tree: CodeTree)(text: List[Char]): List[Bit] = ???
+    def encode(tree: CodeTree)(text: List[Char]): List[Bit] = {
+      text.foldLeft(List[Bit]()) { (bits, char) => bits ++ encodeChar(tree)(char) }
+    }
   
   // Part 4b: Encoding using code table
 
@@ -208,7 +231,10 @@ object Huffman {
    * This function returns the bit sequence that represents the character `char` in
    * the code table `table`.
    */
-    def codeBits(table: CodeTable)(char: Char): List[Bit] = ???
+    def codeBits(table: CodeTable)(char: Char): List[Bit] = {
+      val codeMap = table.toMap
+      codeMap(char)
+    }
   
   /**
    * Given a code tree, create a code table which contains, for every character in the
@@ -218,14 +244,20 @@ object Huffman {
    * a valid code tree that can be represented as a code table. Using the code tables of the
    * sub-trees, think of how to build the code table for the entire tree.
    */
-    def convert(tree: CodeTree): CodeTable = ???
+    def convert(tree: CodeTree): CodeTable = {
+      tree.getChars().foldLeft(Map[Char, List[Bit]]()) { (codeMap, char) => 
+        codeMap + (char -> encode(tree)(List(char)))
+      } toList
+    }
   
   /**
    * This function takes two code tables and merges them into one. Depending on how you
    * use it in the `convert` method above, this merge method might also do some transformations
    * on the two parameter code tables.
    */
-    def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = ???
+    def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = {
+      (a.toMap ++ b.toMap).toList
+    }
   
   /**
    * This function encodes `text` according to the code tree `tree`.
@@ -233,5 +265,10 @@ object Huffman {
    * To speed up the encoding process, it first converts the code tree to a code table
    * and then uses it to perform the actual encoding.
    */
-    def quickEncode(tree: CodeTree)(text: List[Char]): List[Bit] = ???
+    def quickEncode(tree: CodeTree)(text: List[Char]): List[Bit] = {
+      val ct = convert(tree)
+      text.foldLeft(List[Bit]()) { (bits, char) =>
+        bits ++ codeBits(ct)(char)
+      }
+    }
   }
